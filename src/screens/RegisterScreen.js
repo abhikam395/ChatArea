@@ -1,8 +1,13 @@
 import React from 'react';
 import { Component } from 'react';
 import {StyleSheet, Text, View, TouchableOpacity } from 'react-native';
-import { TextInput, HelperText } from 'react-native-paper';
+import { TextInput, HelperText, ActivityIndicator } from 'react-native-paper';
 import {BLUE} from './../utils/commonColors';
+import auth from '@react-native-firebase/auth';
+import SharedPreferenes from 'react-native-shared-preferences';
+import firestore from '@react-native-firebase/firestore';
+import { generateId } from '../utils/generateUniqueId';
+import { setUser } from '../utils/sharedPreferences';
 
 const initialState = {
     name: null,
@@ -13,7 +18,8 @@ const initialState = {
         email: null,
         password: null
     },
-    registerError: null
+    registerError: null,
+    loading: false
 }
 
 export default class RegisterScreen extends Component{
@@ -23,6 +29,7 @@ export default class RegisterScreen extends Component{
         this.state = initialState;
         this.isValidated = this.isValidated.bind(this);
         this.register = this.register.bind(this);
+        this.userCollection = firestore().collection('users');
     }
 
     isValidated(){
@@ -52,22 +59,53 @@ export default class RegisterScreen extends Component{
             this.setState({inputError: error});
         }
         else {
-            this.setState({inputError: initialState.error});
+            this.setState({
+                inputError: initialState.inputError, 
+                registerError: null
+            });
             return true;
         }
     }
 
     register(){
         let {name, password, email} = this.state;
+        let {navigation} = this.props;
         if(this.isValidated()){
-            console.log('Validated')
+            this.setState({loading: true})
+            this.userCollection
+                .where('email', '==' ,email)
+                .limit(1)
+                .get()
+                .then(querySnapshot => {
+                    let data = querySnapshot.docs[0] || null;
+                    if(data == null ){
+                        let uniqueId = generateId();
+                        this.userCollection
+                            .doc(uniqueId)
+                            .set({
+                                name: name,
+                                password: password,
+                                email: email
+                            })
+                            .then((user) => {
+                                this.setState({loading: false})
+                                setUser({id: uniqueId, name: name, email: email});
+                                navigation.navigate('Home');
+                            })
+                    }
+                    else {
+                        this.setState({loading: false})
+                        this.setState({registerError: 'User already exists'});
+                    }
+                })
         }
     }
 
     render(){
         let {
             name, 
-            email, 
+            email,
+            loading,
             password, 
             inputError, 
             registerError
@@ -79,45 +117,52 @@ export default class RegisterScreen extends Component{
                         label="Name"
                         value={name}
                         style={styles.input}
+                        textContentType="name"
                         onChangeText={name => this.setState({name: name})}
                     />
                     {inputError.name != null && (
                         <HelperText type="error" visible={true}>
-                            {error.name}
+                            {inputError.name}
                         </HelperText>
                     )}
                     <TextInput
                         label="Email"
                         value={email}
                         style={styles.input}
+                        keyboardType="email-address"
                         onChangeText={email => this.setState({email: email})}
                     />
                     {inputError.email != null && (
                         <HelperText type="error" visible={true}>
-                            {error.email}
+                            {inputError.email}
                         </HelperText>
                     )}
                     <TextInput
                         label="Password"
                         value={password}
                         style={styles.input}
+                        textContentType="password"
                         onChangeText={password => this.setState({password: password})}
                     />
                     {inputError.password != null && (
                         <HelperText type="error" visible={true}>
-                            {error.password}
+                            {inputError.password}
                         </HelperText>
                     )}
                     <TouchableOpacity 
                         style={styles.button} 
                         activeOpacity={.6}
+                        disabled={loading}
                         onPress={this.register}>
                         <Text style={styles.buttonLabel}>Register</Text>
                     </TouchableOpacity>
                    {registerError != null && (
                         <HelperText type="error" style={styles.errorMessage}>
-                            Something when wrong
+                            {registerError}
                         </HelperText>
+                   )}
+                   {loading && (
+                       <ActivityIndicator size="large"/>
                    )}
                 </View>
             </View>
