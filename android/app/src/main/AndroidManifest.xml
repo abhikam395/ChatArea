@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-  package="com.chatarea">
+  package="com.abhikam395.chatarea">
 
     <uses-permission android:name="android.permission.INTERNET" />
 

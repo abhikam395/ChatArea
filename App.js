@@ -1,9 +1,22 @@
 import React from 'react';
 import MainNavigation from './src/navigations/mainNavigation';
-function App(){
+import { Provider as PaperProvider, DefaultTheme } from 'react-native-paper';
+import { BLUE } from './src/utils/commonColors';
+
+const theme = {
+  ...DefaultTheme,
+  roundness: 2,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: BLUE,
+    accent: BLUE,
+  },
+};
+
+export default function App(){
   return (
-    <MainNavigation />
+    <PaperProvider theme={theme}>
+        <MainNavigation />
+    </PaperProvider>
   )
 }
-
-export default App;
