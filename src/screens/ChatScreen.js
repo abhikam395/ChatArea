@@ -17,7 +17,9 @@ export default class ChatScreen extends Component{
         }
         this.sendMessage = this.sendMessage.bind(this);
         this.groupCollection =  firestore().collection('groups');
+        this.userCollection = firestore().collection('users');
         this.chatCollection = firestore().collection('chats');
+        this.messageCollection = firestore().collection('messages');
         this.renderChatItem = this.renderChatItem.bind(this);
         this.groupId = null;
         this.listRef = createRef();
@@ -32,83 +34,100 @@ export default class ChatScreen extends Component{
         });
         try {
             this.self = await getUser();
-            this.group1 = await this.groupCollection.where('creatorId', '==', this.self.id)
-                .where('userId', '==', this.user.id).limit(1).get();
-            this.group2 = await this.groupCollection.where('creatorId', '==', this.user.id)
-                .where('userId', '==', this.self.id).limit(1).get();
-            if(this.group1.docs.length != 0 || this.group2.docs.length != 0){
-                this.groupId = this.group1.docs.length != 0 ? this.group1.docs[0].id : this.group2.docs[0].id;
+            this.group = await 
+                this.groupCollection.where('members', '==', {[this.user.id] : true, [this.self.id]: true}).limit(1).get();
+            if(this.group.docs.length != 0){
+                this.groupId = this.group.docs[0].id;
             }
             else {
                 await this.createGroup(this.self.id, this.user.id);
             }
+            
+            let chats = [];
             let context = this;
-            let {chats} = context.state;
             function onResult(QuerySnapshot) {
-                let {docs} = QuerySnapshot;
-                const chatList = [];
-                if(docs.length == 0) return;
-                docs.forEach(data => {
-                    chatList.push(data.data());
-                })
-                context.setState({chats: chatList});
-                console.log(Object.keys(QuerySnapshot))
-                console.log(QuerySnapshot['docs'].length)
-              }
-              
+                let { docs} = QuerySnapshot;
+                if(chats.length != 0)
+                    chats.push(docs[chats.length - 1]);   
+                else {
+                    docs.forEach(data => {
+                        chats.push(data.data());
+                    });
+                }
+                context.setState({chats: chats});
+            }
+            
             function onError(error) {
                 console.error(error);
             }
-
-            this.chatCollection.where('groupId', '==' , this.groupId).onSnapshot(onResult, onError);
-            if(this.state.chats.length != 0)
-                this.listRef.current.scrollToIndex(this.state.chats.length - 1)
+            this.unsubscribe = await this.messageCollection
+                .doc(this.groupId)
+                .collection('messages')
+                .orderBy('timestamp', 'asc')
+                .onSnapshot(onResult, onError);
         } catch (error) {
             console.log(error)
         }
     }
 
     async createGroup(creatorId, userId){
-        let uniqueId = generateId();
         try {
-            this.group = await this.groupCollection.doc(uniqueId).set({
-                id: uniqueId,
-                creatorId: creatorId,
-                userId: userId
-            });
-            this.groupId = uniqueId;
+            const group = await this.groupCollection.add({
+                members: {
+                    [creatorId]: true,
+                    [userId]: true
+                }
+            })
+            this.groupId = group.id;
+            
+            let data = await this.userCollection.doc(creatorId).get();
+            let groups = data.data().groups;
+            await this.userCollection.doc(creatorId).update({
+                groups: Object.assign({...groups}, {[this.groupId]: true})
+            })
+
+            data = await this.userCollection.doc(userId).get();
+            groups = data.data().groups;
+            await this.userCollection.doc(userId).update({
+                groups: Object.assign({...groups}, {[this.groupId]: true})
+            })
         } catch (error) {
             console.log(error)
         }
     }
 
-    async sendMessage(){
+    sendMessage(){
         let {message} = this.state;
+        console.log(message)
         if(message.length == 0) return;
-        try {
-            await this.chatCollection.add({
-                groupId: this.groupId,
-                message: this.state.message,
-                from: {
-                    id: this.self.id,
-                    name: this.self.name
-                },
-                to: {
-                    id: this.user.id,
-                    name: this.user.name,
-                },
-                createdAt: new Date()
+        this.chatCollection.doc(this.groupId).set({
+            senderId: this.self.id,
+            name: this.self.name,
+            lastMessage: message,
+            timestamp: new Date().getTime()
+        })
+        .then(() => {
+            this.setState({message: ''});
+            this.messageCollection.doc(this.groupId).collection('messages').add({
+                senderId: this.self.id,
+                name: this.self.name,
+                message: message,
+                timestamp: new Date().getTime()
             })
-            this.setState({message: ''})
-        } catch (error) {
-            console.log(error)
-        }
+        })
+        .catch(error => {
+            console.log(error);
+        })
+    }
+
+    componentWillUnmount(){
+        this.unsubscribe();
     }
 
     renderChatItem({item}){
-        let {from, to, message, createdAt} = item;
-        let isSelfChat = from.id == this.self.id;
-        const ago = moment(createdAt).fromNow();
+        let {senderId, senderName, message, timestamp} = item;
+        let isSelfChat = senderId == this.self.id ? true : false;
+        const ago = moment(timestamp).fromNow();
         return (
             <View style={isSelfChat ? styles.selfChat : styles.chat}>
                 <Text>{message}</Text>
@@ -120,13 +139,15 @@ export default class ChatScreen extends Component{
     render(){
         return (
             <View style={styles.container}>
-                <FlatList
-                    ref={this.listRef}
-                    data={this.state.chats}
-                    renderItem={this.renderChatItem}
-                    keyExtractor={(item, index) => index.toString()}
-                    contentContainerStyle={{padding: 10}}
-                />
+                {this.state.chats.length > 0 && (
+                    <FlatList
+                        ref={this.listRef}
+                        data={this.state.chats}
+                        renderItem={this.renderChatItem}
+                        keyExtractor={(item, index) => index.toString()}
+                        contentContainerStyle={{padding: 10}}
+                    />
+                )}
                 <View style={styles.chatBox}>
                     <TextInput 
                         placeholder="Write message .." 

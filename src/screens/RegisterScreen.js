@@ -84,7 +84,8 @@ export default class RegisterScreen extends Component{
                         .set({
                             name: name,
                             password: password,
-                            email: email
+                            email: email,
+                            groups: {}
                         })
                     if(data != null){
                         this.setState({loading: false})
@@ -94,7 +95,9 @@ export default class RegisterScreen extends Component{
                 }
                 else {
                     this.setState({loading: false})
-                    this.setState({registerError: 'User already exists'});
+                    // this.setState({registerError: 'User already exists'});
+                    setUser({id: data.id, name: data.data().name, email: data.data().email});
+                    navigation.navigate('Home');
                 }
             } catch (error) {
                 console.log(error)

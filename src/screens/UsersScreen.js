@@ -17,10 +17,12 @@ export default class UsersScreen extends Component{
     async componentDidMount(){
         try {
             let user = await getUser();
-            const users = await this.userCollection.where('id', '!=', user.id).get();
+            const users = await this.userCollection.get();
             let userList = [];
-            users.forEach(user => {
-                userList.push(user.data());
+            users.forEach(data => {
+                if(data.id == user.id) return;
+                let {name, email} = data.data();
+                userList.push({id: data.id, name: name, email: email});
             })
             this.setState({users: userList});
         } catch (error) {
@@ -48,7 +50,7 @@ export default class UsersScreen extends Component{
                 <FlatList
                     data={users}
                     renderItem={({item}) => this.renderItem(item, navigation)}
-                    keyExtractor={item => item.id}
+                    keyExtractor={(item, index) => index.toString()}
                     contentContainerStyle={{
                         padding: 10
                     }}
