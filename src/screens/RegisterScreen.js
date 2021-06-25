@@ -6,7 +6,7 @@ import {BLUE} from './../utils/commonColors';
 import auth from '@react-native-firebase/auth';
 import SharedPreferenes from 'react-native-shared-preferences';
 import firestore from '@react-native-firebase/firestore';
-import { generateId } from '../utils/generateUniqueId';
+import { generateId, generateUniqueId } from '../utils/generateUniqueId';
 import { setUser } from '../utils/sharedPreferences';
 
 const initialState = {
@@ -67,37 +67,38 @@ export default class RegisterScreen extends Component{
         }
     }
 
-    register(){
+    async register(){
         let {name, password, email} = this.state;
         let {navigation} = this.props;
         if(this.isValidated()){
             this.setState({loading: true})
-            this.userCollection
-                .where('email', '==' ,email)
-                .limit(1)
-                .get()
-                .then(querySnapshot => {
-                    let data = querySnapshot.docs[0] || null;
-                    if(data == null ){
-                        let uniqueId = generateId();
-                        this.userCollection
-                            .doc(uniqueId)
-                            .set({
-                                name: name,
-                                password: password,
-                                email: email
-                            })
-                            .then((user) => {
-                                this.setState({loading: false})
-                                setUser({id: uniqueId, name: name, email: email});
-                                navigation.navigate('Home');
-                            })
-                    }
-                    else {
+            try {
+                let user = await  this.userCollection
+                    .where('email', '==', email)
+                    .limit(1)
+                    .get();
+                let data = user.docs[0] || null;
+                if(data == null ){
+                    let uniqueId = generateUniqueId().toString();
+                    let data = this.userCollection.doc(uniqueId)
+                        .set({
+                            name: name,
+                            password: password,
+                            email: email
+                        })
+                    if(data != null){
                         this.setState({loading: false})
-                        this.setState({registerError: 'User already exists'});
+                        setUser({id: uniqueId, name: name, email: email});
+                        navigation.navigate('Home');
                     }
-                })
+                }
+                else {
+                    this.setState({loading: false})
+                    this.setState({registerError: 'User already exists'});
+                }
+            } catch (error) {
+                console.log(error)
+            }
         }
     }
 

@@ -1,5 +1,3 @@
-import uuid from 'react-native-uuid';
-
-export function generateId(){
-    return uuid.v4();
+export function generateUniqueId(){
+    return new Date().valueOf();
 }
