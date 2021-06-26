@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "77994501542",
+    "project_id": "chatarea-d155b",
+    "storage_bucket": "chatarea-d155b.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:77994501542:android:07f8f00c5424e40c631b67",
+        "android_client_info": {
+          "package_name": "com.abhikam395.chatarea"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "77994501542-numstouob20rbblec4tti7vlaff3tenf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCeQkWXhk3Kd1xCP8JaWsWROJtBFMBm4fI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "77994501542-numstouob20rbblec4tti7vlaff3tenf.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

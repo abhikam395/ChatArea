@@ -1,4 +1,4 @@
-package com.chatarea;
+package com.abhikam395.chatarea;
 
 import android.app.Application;
 import android.content.Context;
