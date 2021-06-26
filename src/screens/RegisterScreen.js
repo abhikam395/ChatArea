@@ -85,6 +85,7 @@ export default class RegisterScreen extends Component{
                             name: name,
                             password: password,
                             email: email,
+                            profile: {}
                         })
                     if(data != null){
                         this.setState({loading: false})

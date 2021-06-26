@@ -45,7 +45,7 @@ export default class MainNavigation extends Component{
         }
         return (
                 <NavigationContainer>
-                    <Stack.Navigator initialRouteName={'Profile'}>
+                    <Stack.Navigator initialRouteName={user != null ? 'Home': 'Register'}>
                         <Stack.Screen 
                             name="Home" 
                             component={HomeScreen} 

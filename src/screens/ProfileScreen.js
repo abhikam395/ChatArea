@@ -29,7 +29,6 @@ export default class ProfileScreen extends Component{
         this.pickImage = this.pickImage.bind(this);
         this.clickImage = this.clickImage.bind(this);
         this.uploadProfileData = this.uploadProfileData.bind(this);
-        this.profileCollection = firestore().collection('profiles');
     }
 
     pickImage(){
@@ -58,15 +57,20 @@ export default class ProfileScreen extends Component{
         let {name, status, imageUrl, imageType} = this.state;
         let {navigation} = this.props;
         let user = await getUser();
-        let imageName = new Date().getTime() + '.' + imageType; 
+       
         try {
-            reference = await storage().ref(imageName);
-            await reference.putFile(imageUrl);
-            pathToImage = await reference.getDownloadURL();
-            await this.profileCollection.doc(user.id).set({
+            if(imageUrl != null){
+                let imageName = new Date().getTime() + '.' + imageType; 
+                reference = await storage().ref(imageName);
+                await reference.putFile(imageUrl);
+                pathToImage = await reference.getDownloadURL();
+            }
+            await firestore().collection('users').doc(user.id).update({
+               profile: {
                 name: name,
                 status: status,
                 imageUrl: pathToImage
+               }
             })
             this.setState({loading: false});
             navigation.replace('Home');
