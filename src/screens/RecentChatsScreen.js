@@ -1,16 +1,19 @@
 import React from 'react';
 import { Component } from 'react';
-import {StyleSheet, FlatList, View, Text } from 'react-native';
+import {StyleSheet, FlatList, View, Text, TouchableOpacity } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import { getUser } from '../utils/sharedPreferences';
 import moment from 'moment';
+import { ActivityIndicator } from 'react-native-paper';
+import { BLUE } from '../utils/commonColors';
 
 export default class RecentChatsScreen extends Component{
 
     constructor(){
         super();
         this.state = {
-            chats: []
+            chats: [],
+            loading: false
         }
         this.renderItem = this.renderItem.bind(this);
         this.userCollection = firestore().collection('users');
@@ -20,6 +23,7 @@ export default class RecentChatsScreen extends Component{
 
     async componentDidMount(){
         let groupIds = [], recentChats = [];
+        this.setState({loading: true})
         this.user = await getUser();
         const groups = await this.userCollection.doc(this.user.id).collection('groups').get();
         groups.forEach(group => {
@@ -30,29 +34,42 @@ export default class RecentChatsScreen extends Component{
             chats.docs.forEach(data => {
                 recentChats.push(data.data());
             })
-            this.setState({chats: recentChats});
+            this.setState({chats: recentChats, loading: false});
+        }
+        else {
+            this.setState({loading: false})
         }
     }
 
     renderItem({item}){
+        let {navigation} = this.props;
         let {from, to, lastMessage, timeStamp} = item;
-        let name = from.id != this.user.id ? from.name : to.name;
+        let user = from.id != this.user.id ? from : to;
         return (
-            <View style={styles.card}>
+            <TouchableOpacity 
+                style={styles.card}
+                onPress={() => navigation.navigate('Chat', {user: user})}>
                 <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
-                    <Text style={{fontSize: 13, fontWeight: 'bold'}}>{name}</Text>
+                    <Text style={{fontSize: 13, fontWeight: 'bold'}}>{user.name}</Text>
                     <Text style={{fontSize: 10}}>{moment(timeStamp).fromNow()}</Text>
                 </View>
                 <Text style={{marginTop: 10}}>{lastMessage}</Text>
-            </View>
+            </TouchableOpacity>
         )
     }
 
     render(){
-        let {chats} = this.state;
+        let {chats, loading} = this.state;
         return (
             <View style={styles.container}>
-                {chats.length == 0 && (
+                {loading && (
+                    <ActivityIndicator 
+                        size="small" 
+                        color={BLUE} 
+                        style={{marginTop: 20}}
+                    />
+                )}
+                {chats.length == 0 &&  loading == false && (
                     <Text 
                         style={{
                             fontSize: 14, 
