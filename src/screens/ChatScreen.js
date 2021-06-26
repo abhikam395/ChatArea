@@ -9,12 +9,16 @@ import moment from 'moment';
 
 export default class ChatScreen extends Component{
 
-    constructor(){
-        super();
+    constructor(props){
+        super(props);
         this.state = {
             message: '',
             chats: []
         }
+        let {route, navigation} = props;
+        let {user} = route.params;
+        this.user = user;
+        navigation.setOptions({ title: user.name });
         this.sendMessage = this.sendMessage.bind(this);
         this.groupCollection =  firestore().collection('groups');
         this.userCollection = firestore().collection('users');
@@ -26,12 +30,6 @@ export default class ChatScreen extends Component{
     }
 
     async componentDidMount(){
-        let {route, navigation} = this.props;
-        let {user} = route.params;
-        this.user = user;
-        navigation.setOptions({
-            title: this.user.name
-        });
         try {
             this.self = await getUser();
             this.group = await 
@@ -47,8 +45,10 @@ export default class ChatScreen extends Component{
             let context = this;
             function onResult(QuerySnapshot) {
                 let { docs} = QuerySnapshot;
-                if(chats.length != 0)
-                    chats.push(docs[chats.length - 1]);   
+                if(chats.length != 0){
+                    chats.push(docs[chats.length - 1]);  
+                    console.log(docs[chats.length - 1].data()); 
+                }
                 else {
                     docs.forEach(data => {
                         chats.push(data.data());
@@ -72,25 +72,16 @@ export default class ChatScreen extends Component{
 
     async createGroup(creatorId, userId){
         try {
-            const group = await this.groupCollection.add({
-                members: {
-                    [creatorId]: true,
-                    [userId]: true
-                }
-            })
-            this.groupId = group.id;
-            
-            let data = await this.userCollection.doc(creatorId).get();
-            let groups = data.data().groups;
-            await this.userCollection.doc(creatorId).update({
-                groups: Object.assign({...groups}, {[this.groupId]: true})
-            })
-
-            data = await this.userCollection.doc(userId).get();
-            groups = data.data().groups;
-            await this.userCollection.doc(userId).update({
-                groups: Object.assign({...groups}, {[this.groupId]: true})
-            })
+            const batch = firestore().batch();
+            let groupRef = this.groupCollection.doc();
+            batch.set(groupRef, { members: {
+                [creatorId]: true,
+                [userId]: true
+            }})
+            batch.set(this.userCollection.doc(creatorId).collection('groups').doc(userId), {state: true});
+            batch.set(this.userCollection.doc(userId).collection('groups').doc(creatorId), {state: true});
+            batch.commit();
+            this.groupId = groupRef.id;
         } catch (error) {
             console.log(error)
         }
@@ -100,24 +91,25 @@ export default class ChatScreen extends Component{
         let {message} = this.state;
         console.log(message)
         if(message.length == 0) return;
-        this.chatCollection.doc(this.groupId).set({
-            senderId: this.self.id,
-            name: this.self.name,
-            lastMessage: message,
-            timestamp: new Date().getTime()
-        })
-        .then(() => {
-            this.setState({message: ''});
-            this.messageCollection.doc(this.groupId).collection('messages').add({
+        try {
+            const batch = firestore().batch();
+            batch.set(this.chatCollection.doc(this.groupId), {
+                senderId: this.self.id,
+                name: this.self.name,
+                lastMessage: message,
+                timestamp: new Date().getTime()
+            })
+            batch.set(this.messageCollection.doc(this.groupId).collection('messages').doc(), {
                 senderId: this.self.id,
                 name: this.self.name,
                 message: message,
                 timestamp: new Date().getTime()
             })
-        })
-        .catch(error => {
+            batch.commit()
+            this.setState({message: ''})
+        } catch (error) {
             console.log(error);
-        })
+        }
     }
 
     componentWillUnmount(){
