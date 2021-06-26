@@ -89,14 +89,14 @@ export default class RegisterScreen extends Component{
                     if(data != null){
                         this.setState({loading: false})
                         setUser({id: uniqueId, name: name, email: email});
-                        navigation.navigate('Home');
+                        navigation.replace('Profile');
                     }
                 }
                 else {
                     this.setState({loading: false})
                     // this.setState({registerError: 'User already exists'});
                     setUser({id: data.id, name: data.data().name, email: data.data().email});
-                    navigation.navigate('Home');
+                    navigation.replace('Profile');
                 }
             } catch (error) {
                 console.log(error)
