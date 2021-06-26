@@ -13,4 +13,4 @@
     * Redux
     * Firebase
   * #### ScreenShots : 
-     * <img src="https://github.com/abhikam395/ChatArea/blob/develop/assets/1.jpg?raw=true" height="700px" width="400px" alt="RecentChats Screen">
+     * <img src="https://github.com/abhikam395/ChatArea/blob/develop/assets/1.jpg?raw=true" height="500px" width="300px" alt="RecentChats Screen">
