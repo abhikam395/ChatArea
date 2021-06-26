@@ -27,6 +27,8 @@ export default class ChatScreen extends Component{
         this.renderChatItem = this.renderChatItem.bind(this);
         this.groupId = null;
         this.listRef = createRef();
+        this.onResult = this.onResult.bind(this);
+        this.onError = this.onError.bind(this);
     }
 
     async componentDidMount(){
@@ -41,34 +43,38 @@ export default class ChatScreen extends Component{
                 await this.createGroup(this.self.id, this.user.id);
             }
             
-            let chats = [];
-            let context = this;
-            function onResult(QuerySnapshot) {
-                let { docs} = QuerySnapshot;
-                if(chats.length != 0){
-                    chats.push(docs[chats.length - 1]);  
-                    console.log(docs[chats.length - 1].data()); 
-                }
-                else {
-                    docs.forEach(data => {
-                        chats.push(data.data());
-                    });
-                }
-                context.setState({chats: chats});
-            }
-            
-            function onError(error) {
-                console.error(error);
-            }
             this.unsubscribe = await this.messageCollection
                 .doc(this.groupId)
                 .collection('messages')
                 .orderBy('timestamp', 'asc')
-                .onSnapshot(onResult, onError);
+                .onSnapshot(this.onResult, this.onError);
         } catch (error) {
             console.log(error)
         }
     }
+
+
+    onResult(QuerySnapshot) {
+        let { docs} = QuerySnapshot;
+        let chats = [];
+        if(chats.length != 0){
+            let data = docs[chats.length].data();
+            chats.push(data);
+            this.setState({chats: [...chats]});
+        }
+        else {
+            docs.forEach(data => {
+                chats.push(data.data());
+            });
+            this.setState({chats: [...chats]});
+        }
+        
+    }
+    
+    onError(error) {
+        console.error(error);
+    }
+    
 
     async createGroup(creatorId, userId){
         try {
@@ -89,7 +95,6 @@ export default class ChatScreen extends Component{
 
     sendMessage(){
         let {message} = this.state;
-        console.log(message)
         if(message.length == 0) return;
         try {
             const batch = firestore().batch();
@@ -133,9 +138,12 @@ export default class ChatScreen extends Component{
             <View style={styles.container}>
                 {this.state.chats.length > 0 && (
                     <FlatList
+                        style={{marginBottom: 70}}
                         ref={this.listRef}
                         data={this.state.chats}
                         renderItem={this.renderChatItem}
+                        showsVerticalScrollIndicator={false}
+                        onContentSizeChange={() => this.listRef.current.scrollToEnd({animated: true})}
                         keyExtractor={(item, index) => index.toString()}
                         contentContainerStyle={{padding: 10}}
                     />
@@ -159,7 +167,8 @@ export default class ChatScreen extends Component{
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1
+        // flex: 1,
+        height: '100%'
     },
     chatBox: {
         backgroundColor: 'white',
