@@ -13,4 +13,4 @@
     * Redux
     * Firebase
   * #### ScreenShots : 
-     * [S1](/images/logo.png)
+     * ![RecentChats Screen](https://github.com/abhikam395/ChatArea/blob/[branch]/1.jpg?raw=true)
