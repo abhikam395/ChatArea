@@ -2,10 +2,11 @@ import React, { Component, createRef } from 'react';
 import {StyleSheet, Text, View, TextInput, TouchableOpacity } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import { getUser } from '../utils/sharedPreferences';
-import {generateId} from '../utils/generateUniqueId';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { FlatList } from 'react-native-gesture-handler';
 import moment from 'moment';
+
+const INTERVAL = 10 * 1000;
 
 export default class ChatScreen extends Component{
 
@@ -18,13 +19,14 @@ export default class ChatScreen extends Component{
         let {route, navigation} = props;
         let {user} = route.params;
         this.user = user;
-        navigation.setOptions({ title: user.name });
+        navigation.setParams({ title: user.name });
         this.sendMessage = this.sendMessage.bind(this);
         this.groupCollection =  firestore().collection('groups');
         this.userCollection = firestore().collection('users');
         this.chatCollection = firestore().collection('chats');
         this.messageCollection = firestore().collection('messages');
         this.renderChatItem = this.renderChatItem.bind(this);
+        this.getLastSeenUpdate = this.getLastSeenUpdate.bind(this);
         this.groupId = null;
         this.listRef = createRef();
         this.onResult = this.onResult.bind(this);
@@ -32,6 +34,11 @@ export default class ChatScreen extends Component{
     }
 
     async componentDidMount(){
+        let context = this;
+        this.getLastSeenUpdate(context);
+        this.inverval = setInterval(() => {
+            this.getLastSeenUpdate(context);
+        }, INTERVAL);
         try {
             this.self = await getUser();
             this.group = await 
@@ -53,6 +60,15 @@ export default class ChatScreen extends Component{
         }
     }
 
+    async getLastSeenUpdate(context){
+        try {
+            let {navigation} = context.props;
+            const lastseen = await firestore().collection('lastseen').doc(this.user.id).get();
+            navigation.setParams({ lastseen: lastseen.data().seen});
+        } catch (error) {
+            console.log(error);
+        }
+    }
 
     onResult(QuerySnapshot) {
         let { docs} = QuerySnapshot;
@@ -119,6 +135,7 @@ export default class ChatScreen extends Component{
 
     componentWillUnmount(){
         this.unsubscribe();
+        clearInterval(this.inverval);
     }
 
     renderChatItem({item}){

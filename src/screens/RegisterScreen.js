@@ -79,19 +79,16 @@ export default class RegisterScreen extends Component{
                     .get();
                 let data = user.docs[0] || null;
                 if(data == null ){
-                    let uniqueId = generateUniqueId().toString();
-                    let data = this.userCollection.doc(uniqueId)
-                        .set({
+                    const userReference = this.userCollection.doc();
+                    await userReference.set({
                             name: name,
                             password: password,
                             email: email,
                             profile: {}
                         })
-                    if(data != null){
-                        this.setState({loading: false})
-                        setUser({id: uniqueId, name: name, email: email});
-                        navigation.replace('Profile');
-                    }
+                    this.setState({loading: false})
+                    setUser({id: userReference.id, name: name, email: email});
+                    navigation.replace('Profile');
                 }
                 else {
                     this.setState({loading: false})
