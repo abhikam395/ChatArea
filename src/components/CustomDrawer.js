@@ -7,34 +7,25 @@ import firestore from '@react-native-firebase/firestore';
 
 export default class CustomDrawerContent extends Component{
 
-  constructor(){
-    super();
-    this.state = {
-        profile: null
-    }
-  }
-
   async componentDidMount(){
     try {
       const user = await getUser();
       const userData = await firestore().collection('users').doc(user.id).get();
-      const profile = userData.exists ? userData.data().profile : null;
-      this.setState({profile: profile});
+      this.profile = userData.exists ? userData.data().profile : null;
     } catch (error) {
       console.log(error);
     }
   }
   
   render(){
-      let {profile} = this.state;
       let {navigation} = this.props;
       return (
         <DrawerContentScrollView {...this.props}>
-          {profile != null && (
+          {this.profile != null && (
             <View style={styles.profileContainer}>
-              <Image source={{uri: profile.imageUrl}} style={styles.userImage}/>
-              <Text style={styles.userName}>{profile.name}</Text>
-              <Text style={styles.userStatus}>{profile.status}</Text>
+              <Image source={{uri: this.profile.imageUrl}} style={styles.userImage}/>
+              <Text style={styles.userName}>{this.profile.name}</Text>
+              <Text style={styles.userStatus}>{this.profile.status}</Text>
             </View>
           )}
           <DrawerItemList {...this.props} />

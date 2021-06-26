@@ -45,6 +45,7 @@ export default class ChatScreen extends Component{
                 this.groupCollection.where('members', '==', {[this.user.id] : true, [this.self.id]: true}).limit(1).get();
             if(this.group.docs.length != 0){
                 this.groupId = this.group.docs[0].id;
+                console.log(this.groupId)
             }
             else {
                 await this.createGroup(this.self.id, this.user.id);
@@ -100,8 +101,8 @@ export default class ChatScreen extends Component{
                 [creatorId]: true,
                 [userId]: true
             }})
-            batch.set(this.userCollection.doc(creatorId).collection('groups').doc(userId), {state: true});
-            batch.set(this.userCollection.doc(userId).collection('groups').doc(creatorId), {state: true});
+            batch.set(this.userCollection.doc(creatorId).collection('groups').doc(groupRef.id), {state: true});
+            batch.set(this.userCollection.doc(userId).collection('groups').doc(groupRef.id), {state: true});
             batch.commit();
             this.groupId = groupRef.id;
         } catch (error) {
@@ -115,8 +116,14 @@ export default class ChatScreen extends Component{
         try {
             const batch = firestore().batch();
             batch.set(this.chatCollection.doc(this.groupId), {
-                senderId: this.self.id,
-                name: this.self.name,
+                from: {
+                    id: this.self.id,
+                    name: this.self.name
+                },
+                to: {
+                    id: this.user.id,
+                    name: this.user.name
+                },
                 lastMessage: message,
                 timestamp: new Date().getTime()
             })

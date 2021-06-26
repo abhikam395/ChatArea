@@ -10,8 +10,10 @@ export default function SideDrawer(){
     
     return (
         <Drawer.Navigator
-            screenOptions={{headerShown: true}}
-            initialRouteName="Users"
+            screenOptions={() => ({
+                headerShown: true,
+                unmountOnBlur: true
+            })}
             drawerContent={(props) => <CustomDrawerContent {...props}/>}>
             <Drawer.Screen name="RecentChats" component={RecentChatsScreen}/>
             <Drawer.Screen name="Users" component={UsersScreen}/>
